@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import random
 import base64
 
@@ -29,20 +30,57 @@ def set_bg(image_file):
 set_bg("bg.jpg")
 
 # ---------------------------
-# 背景音乐（自动播放）
+# 背景音乐（可配置：开/关、自动播放、循环、音量、是否显示浏览器控件）
+# 使用 st.components.v1.html 嵌入 audio 标签，可设置 volume 并尝试 autoplay（注意：浏览器可能会阻止自动播放）
 # ---------------------------
-def autoplay_audio(file_path):
-    with open(file_path, "rb") as f:
-        data = f.read()
-        b64 = base64.b64encode(data).decode()
-    md = f"""
-    <audio autoplay loop>
-        <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-    </audio>
-    """
-    st.markdown(md, unsafe_allow_html=True)
+def render_bgm(file_path, enabled=True, autoplay=True, loop=True, volume=0.5, show_controls=False):
+    if not enabled:
+        return
+    try:
+        with open(file_path, "rb") as f:
+            data = f.read()
+            b64 = base64.b64encode(data).decode()
+    except FileNotFoundError:
+        st.warning(f"背景音乐文件未找到：{file_path}")
+        return
 
-autoplay_audio("bgm.mp3")
+    loop_attr = "loop" if loop else ""
+    controls_attr = "controls" if show_controls else ""
+    autoplay_attr = "autoplay" if autoplay else ""
+
+    # Small HTML block with a bit of JS to set volume and attempt playback.
+    # components.html will re-render when Streamlit widgets change (so volume/autoplay updates will apply).
+    html = f"""
+    <audio id="bgm" {controls_attr} {autoplay_attr} {loop_attr} style="width:100%">
+        <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+      const audio = document.getElementById("bgm");
+      try {{
+        audio.volume = {volume};
+      }} catch(e) {{
+        console.log("Cannot set volume:", e);
+      }}
+      if ({str(autoplay).lower()}) {{
+        // Attempt to play; may be blocked until user interaction in some browsers.
+        audio.play().catch(() => {{ console.log("Autoplay blocked by browser"); }});
+      }}
+    </script>
+    """
+    # Height small so it doesn't take too much vertical space
+    components.html(html, height=80, scrolling=False)
+
+# Sidebar controls for background music
+st.sidebar.header("背景音乐 设置")
+music_enabled = st.sidebar.checkbox("播放背景音乐", value=True)
+music_autoplay = st.sidebar.checkbox("自动播放", value=True)
+music_loop = st.sidebar.checkbox("循环播放", value=True)
+music_controls = st.sidebar.checkbox("显示浏览器控件（播放/暂停）", value=False)
+music_volume = st.sidebar.slider("音乐音量", 0.0, 1.0, 0.5, 0.01)
+
+# Render the background music according to settings (file: bgm.mp3)
+render_bgm("bgm.mp3", enabled=music_enabled, autoplay=music_autoplay, loop=music_loop, volume=music_volume, show_controls=music_controls)
 
 # ---------------------------
 # 单词库
@@ -188,7 +226,6 @@ WORDS = [
     ("get on with", "与……相处"),
 ]
 
-
 # ---------------------------
 # 状态初始化
 # ---------------------------
@@ -280,4 +317,3 @@ if st.button("🔄 重置游戏"):
     st.session_state.score_a = 0
     st.session_state.score_b = 0
     st.session_state.word = random.choice(WORDS)
-
