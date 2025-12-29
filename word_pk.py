@@ -1,90 +1,17 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import random
-import base64
 
-# ---------------------------
-# 页面配置
-# ---------------------------
-st.set_page_config(page_title="单词 PK 大赛", layout="centered")
+# =========================
+# 页面设置
+# =========================
+st.set_page_config(
+    page_title="单词 PK 游戏",
+    layout="centered"
+)
 
-# ---------------------------
-# 背景图片
-# ---------------------------
-def set_bg(image_file):
-    with open(image_file, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode()
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url(data:image/jpg;base64,{encoded});
-            background-size: cover;
-            background-position: center;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-set_bg("bg.jpg")
-
-# ---------------------------
-# 背景音乐（可配置：开/关、自动播放、循环、音量、是否显示浏览器控件）
-# 使用 st.components.v1.html 嵌入 audio 标签，可设置 volume 并尝试 autoplay（注意：浏览器可能会阻止自动播放）
-# ---------------------------
-def render_bgm(file_path, enabled=True, autoplay=True, loop=True, volume=0.5, show_controls=False):
-    if not enabled:
-        return
-    try:
-        with open(file_path, "rb") as f:
-            data = f.read()
-            b64 = base64.b64encode(data).decode()
-    except FileNotFoundError:
-        st.warning(f"背景音乐文件未找到：{file_path}")
-        return
-
-    loop_attr = "loop" if loop else ""
-    controls_attr = "controls" if show_controls else ""
-    autoplay_attr = "autoplay" if autoplay else ""
-
-    # Small HTML block with a bit of JS to set volume and attempt playback.
-    # components.html will re-render when Streamlit widgets change (so volume/autoplay updates will apply).
-    html = f"""
-    <audio id="bgm" {controls_attr} {autoplay_attr} {loop_attr} style="width:100%">
-        <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-        Your browser does not support the audio element.
-    </audio>
-    <script>
-      const audio = document.getElementById("bgm");
-      try {{
-        audio.volume = {volume};
-      }} catch(e) {{
-        console.log("Cannot set volume:", e);
-      }}
-      if ({str(autoplay).lower()}) {{
-        // Attempt to play; may be blocked until user interaction in some browsers.
-        audio.play().catch(() => {{ console.log("Autoplay blocked by browser"); }});
-      }}
-    </script>
-    """
-    # Height small so it doesn't take too much vertical space
-    components.html(html, height=80, scrolling=False)
-
-# Sidebar controls for background music
-st.sidebar.header("背景音乐 设置")
-music_enabled = st.sidebar.checkbox("播放背景音乐", value=True)
-music_autoplay = st.sidebar.checkbox("自动播放", value=True)
-music_loop = st.sidebar.checkbox("循环播放", value=True)
-music_controls = st.sidebar.checkbox("显示浏览器控件（播放/暂停）", value=False)
-music_volume = st.sidebar.slider("音乐音量", 0.0, 1.0, 0.5, 0.01)
-
-# Render the background music according to settings (file: bgm.mp3)
-render_bgm("bgm.mp3", enabled=music_enabled, autoplay=music_autoplay, loop=music_loop, volume=music_volume, show_controls=music_controls)
-
-# ---------------------------
-# 单词库
-# ---------------------------
+# =========================
+# 单词库（已合并）
+# =========================
 WORDS = [
     # 原有词汇
     ("evening", "晚上"),
@@ -109,7 +36,7 @@ WORDS = [
     ("video", "视频"),
     ("together", "一起"),
     ("same", "相同的"),
-    ("thing", "事情/事物"),
+    ("thing", "事情 / 事物"),
     ("tell", "讲"),
     ("joke", "笑话"),
     ("sports", "运动"),
@@ -144,7 +71,7 @@ WORDS = [
     ("heart", "心"),
     ("necklace", "项链"),
 
-    # 新增：家庭与人物
+    # 家庭与人物
     ("age", "年龄"),
     ("aunt", "阿姨 / 姑姑"),
     ("boy", "男孩"),
@@ -187,7 +114,7 @@ WORDS = [
     ("woman (women)", "女人"),
     ("young", "年轻的"),
 
-    # 新增：关系 / 身份
+    # 关系 / 身份
     ("adult", "成年人"),
     ("aged", "年老的"),
     ("birth", "出生"),
@@ -213,7 +140,7 @@ WORDS = [
     ("ID card", "身份证"),
     ("pen", "钢笔"),
 
-    # 新增：亲属关系 / 动作
+    # 亲属关系 / 动作
     ("anniversary", "纪念日"),
     ("childhood", "童年"),
     ("father-in-law", "岳父 / 公公"),
@@ -223,50 +150,37 @@ WORDS = [
     ("niece", "侄女 / 外甥女"),
     ("relative", "亲戚"),
     ("bring up", "抚养"),
+    ("get divorced", "离婚"),
     ("get on with", "与……相处"),
 ]
 
-# ---------------------------
-# 状态初始化
-# ---------------------------
+# =========================
+# 初始化状态
+# =========================
 if "score_a" not in st.session_state:
     st.session_state.score_a = 0
     st.session_state.score_b = 0
     st.session_state.word = random.choice(WORDS)
 
-# ---------------------------
-# 标题
-# ---------------------------
-st.markdown(
-    "<h1 style='text-align:center;color:white;'>🔥 单词 PK 大赛 🔥</h1>",
-    unsafe_allow_html=True
-)
+# =========================
+# 页面标题
+# =========================
+st.title("🎮 单词 PK 游戏（双人）")
 
-# ---------------------------
+# =========================
 # 当前单词
-# ---------------------------
+# =========================
+st.markdown("## 🔤 当前单词")
 st.markdown(
-    f"""
-    <div style="
-        background: rgba(0,0,0,0.6);
-        padding: 30px;
-        border-radius: 20px;
-        text-align: center;
-        color: white;
-        font-size: 48px;
-        font-weight: bold;
-    ">
-        {st.session_state.word[0]}
-    </div>
-    """,
+    f"<h1 style='text-align:center'>{st.session_state.word[0]}</h1>",
     unsafe_allow_html=True
 )
 
-st.write("")
+# =========================
+# PK 按钮
+# =========================
+st.markdown("### ✅ 谁答对了？")
 
-# ---------------------------
-# 按钮区
-# ---------------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -282,37 +196,22 @@ with col2:
 if st.button("➡️ 下一个单词（无人答对）"):
     st.session_state.word = random.choice(WORDS)
 
-# ---------------------------
-# 答案
-# ---------------------------
+# =========================
+# 查看答案
+# =========================
 with st.expander("📖 查看中文答案"):
-    st.markdown(
-        f"<h3 style='color:white;'>{st.session_state.word[1]}</h3>",
-        unsafe_allow_html=True
-    )
+    st.write(st.session_state.word[1])
 
-# ---------------------------
+# =========================
 # 积分板
-# ---------------------------
-st.markdown(
-    f"""
-    <div style="
-        background: rgba(0,0,0,0.6);
-        padding: 20px;
-        border-radius: 15px;
-        color: white;
-        font-size: 24px;
-    ">
-        🏆 玩家 A：{st.session_state.score_a} 分<br>
-        🏆 玩家 B：{st.session_state.score_b} 分
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# =========================
+st.markdown("## 🏆 当前积分")
+st.write(f"👤 玩家 A：**{st.session_state.score_a} 分**")
+st.write(f"👤 玩家 B：**{st.session_state.score_b} 分**")
 
-# ---------------------------
+# =========================
 # 重置
-# ---------------------------
+# =========================
 if st.button("🔄 重置游戏"):
     st.session_state.score_a = 0
     st.session_state.score_b = 0
